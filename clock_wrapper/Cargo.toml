@@ -1,0 +1,17 @@
+[package]
+name = "clock"
+version = "0.1.0"
+authors = ["planet0104 <planet0104@gmail.com>"]
+
+[dependencies]
+libloading = "0.5"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["winbase"] }
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+
+[package.metadata.winres]
+OriginalFilename = "clock.exe"
+LegalCopyright = "Copyright © 2018 贾叶"
