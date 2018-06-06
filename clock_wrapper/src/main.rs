@@ -10,20 +10,34 @@ use std::iter::once;
 use std::os::windows::ffi::OsStrExt;
 use winapi::um::winbase::SetDllDirectoryW;
 
-const DLL1: &'static [u8] = include_bytes!("../libfreetype-6.dll");
-const DLL2: &'static [u8] = include_bytes!("../libpng16-16.dll");
-const DLL3: &'static [u8] = include_bytes!("../SDL2.dll");
-const DLL4: &'static [u8] = include_bytes!("../SDL2_image.dll");
-const DLL5: &'static [u8] = include_bytes!("../SDL2_ttf.dll");
-const DLL6: &'static [u8] = include_bytes!("../zlib1.dll");
+#[cfg(windows)] const DLL1: &'static [u8] = include_bytes!("../libfreetype-6.dll");
+#[cfg(windows)] const DLL2: &'static [u8] = include_bytes!("../libpng16-16.dll");
+#[cfg(windows)] const DLL3: &'static [u8] = include_bytes!("../SDL2.dll");
+#[cfg(windows)] const DLL4: &'static [u8] = include_bytes!("../SDL2_image.dll");
+#[cfg(windows)] const DLL5: &'static [u8] = include_bytes!("../SDL2_ttf.dll");
+#[cfg(windows)] const DLL6: &'static [u8] = include_bytes!("../zlib1.dll");
 
-const CLOCK: &'static [u8] = include_bytes!("../clocklib.dll");
+#[cfg(windows)] const CLOCK: &'static [u8] = include_bytes!("../clocklib.dll");
 
 fn convert_ostr(txt: &OsStr) -> Vec<u16> {
     txt.encode_wide().chain(once(0)).collect()
 }
 
 fn main() {
+    let lib = load_library();
+    unsafe {
+        let func: lib::Symbol<unsafe extern fn() -> u32> = lib.get(b"main").unwrap();
+        func();
+    }
+}
+
+#[cfg(unix)]
+fn load_library() -> lib::Library{
+    
+}
+
+#[cfg(windows)]
+fn load_library() -> lib::Library{
     //将dll解压到临时文件夹
     let tmp_dir = { let mut d = env::temp_dir(); d.push("clock_dlls"); d};
     //println!("tmp_dir={:?}", tmp_dir);
@@ -47,19 +61,15 @@ fn main() {
 
     if !clock.exists(){ File::create(clock.clone()).unwrap().write_all(CLOCK).unwrap(); }
 
+
     unsafe{
         let _r = SetDllDirectoryW(convert_ostr(tmp_dir.as_os_str()).as_ptr());
         //println!("SetDllDirectoryW = {}", r);
     }
-    //println!("clock={:?}", clock.exists());
-    //加载clock.dll
-    let lib = lib::Library::new(clock).unwrap();
-    unsafe {
-        let func: lib::Symbol<unsafe extern fn() -> u32> = lib.get(b"main").unwrap();
-        func();
-    }
+    lib::Library::new(clock).unwrap()
 }
 
+#[cfg(windows)]
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern "C" fn WinMain() -> i32 {
